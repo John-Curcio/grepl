@@ -1,6 +1,6 @@
 import subprocess
 import io
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 
 def get_frame_from_timestamp(video_path, timestamp) -> Image:
     """
@@ -22,6 +22,8 @@ def get_frame_from_timestamp(video_path, timestamp) -> Image:
         return img.convert("RGB")
     except subprocess.CalledProcessError:
         raise ValueError(f"Failed to extract frame at {timestamp}s via ffmpeg")
+    except UnidentifiedImageError:
+        raise ValueError(f"Failed to extract frame at {timestamp}s via ffmpeg (clip too short?)")
 
 # Example usage
 if __name__ == "__main__":
