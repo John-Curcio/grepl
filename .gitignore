@@ -28,6 +28,7 @@
 *.mp4
 *.jpg
 *.jpeg
+*.mp4.part
 
 # OS generated files #
 ######################
