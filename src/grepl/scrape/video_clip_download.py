@@ -25,8 +25,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("csv", help="CSV with url,start,duration columns")
     p.add_argument("-o", "--outdir", default="clips", help="Destination directory")
     p.add_argument("-w", "--workers", type=int,
-                   default=min(32, (os.cpu_count() or 4) * 4),
-                   help="Parallel downloads in flight (default: min(32, 4×CPU))")
+                   default=min(8, (os.cpu_count() or 4) * 2),
+                   help="Parallel downloads in flight (default: min(8, 2×CPU))")
     p.add_argument("-c", "--cf", type=int, default=4,
                    help="Concurrent fragment downloads per clip (default: 4)")
     p.add_argument("--retry", type=int, default=1, help="Retry failed downloads")
@@ -76,17 +76,27 @@ def build_ydl_opts(outtmpl: str, start: int, dur: int, cf: int) -> dict:
     """
     end = start + dur
     return {
-        "format": FMT_240P_LOW_FPS,
+        # More flexible format selection
+        "format": "bestvideo[height<=360][ext=mp4]+bestaudio[ext=m4a]/best[height<=360][ext=mp4]/best[ext=mp4]/best",
         "download_ranges": download_range_func(None, [(start, end)]),
+        "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+        "ratelimit": 100000,  # bytes per second (100KB/s)
+        "sleep_interval": 3,  # seconds between requests 
+        "max_sleep_interval": 10,
+        "throttled_rate": 50000,  # bytes per second when throttled
         "merge_output_format": "mp4",
         "force_keyframes_at_cuts": True,
         "concurrent_fragment_downloads": cf,
         "outtmpl": outtmpl,
         "quiet": True,
         "noprogress": True,
-        "socket_timeout": 20,
-        # Disable most throttling mitigations – we want speed
-        "ratelimit": None,
+        "socket_timeout": 30,  # Increased timeout
+        "retries": 5,          # Add retries
+        "extractor_retries": 5,
+        "postprocessors": [{
+            'key': 'FFmpegVideoConvertor',
+            'preferedformat': 'mp4',
+        }],
     }
 
 def download_clip_from_task(task: Tuple[str, int, int, str, int]) -> Tuple[bool, str]:
