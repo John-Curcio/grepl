@@ -1,4 +1,4 @@
-"""DEPRE
+"""DEPRECATED IMMA LET THIS THING ROT
 * Get all timestamped video clips from SQLite with timestamps and a #footage tag
 * Download each clip
 """
@@ -17,7 +17,6 @@ def get_all_footage_urls() -> list[str]:
     df = df[df["tags"].str.contains("#footage", na=False)]
     df = df[df["timestamped_url"].notna() & (df["timestamped_url"] != '')]
     return df["timestamped_url"].tolist()
-
 
 def _download(url: str, duration: int = 30) -> bool:
     """Wrapper for single clip download with error handling."""
