@@ -28,6 +28,10 @@
 *.mp4
 *.jpg
 *.jpeg
+<<<<<<< HEAD
+=======
+*.mp4.part
+>>>>>>> video_proc_nice
 
 # OS generated files #
 ######################
