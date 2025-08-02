@@ -24,6 +24,7 @@ CLIP_FRAMES_FOLDER = "/home/rocus/Documents/john/grepl/clip_frames"
 LABELED_TAGS_FILENAME = "/home/rocus/Documents/john/grepl/labeled_tags.txt" # each tag is "labeled" as "bjj" or "other"
 ANNOTATION_FILENAME = "annotations.txt"
 ANNOTATION_CSV_FILENAME = "annotations.csv"
+LABEL_ENCODER_FILENAME = "label_encoder.pkl"
 
 P_TRAIN = 0.8
 P_VALID, P_TEST = (1 - P_TRAIN) / 2, (1 - P_TRAIN) / 2
@@ -54,6 +55,7 @@ def _write_annotations_to_file(df: pd.DataFrame, annotation_filepath: str):
             num_images = len(os.listdir(os.path.join(CLIP_FRAMES_FOLDER, clip_filename)))
             annotation_row = f"{clip_filename} 0 {num_images} {label_annotation}"
             f.write(annotation_row + "\n")
+
 def generate_annotations():
     """Generate the clip_frames/annotations.txt folder (and the label encoder to make sense of the integer labels)
     
@@ -89,7 +91,7 @@ def generate_annotations():
     df["encoded_tags_filtered"] = df["tags_filtered"].apply(lambda x: le.transform(x.split(",")) if x else [])
 
     # save the label encoder
-    le_filepath = os.path.join(CLIP_FRAMES_FOLDER, "label_encoder.pkl")
+    le_filepath = os.path.join(CLIP_FRAMES_FOLDER, LABEL_ENCODER_FILENAME)
     with open(le_filepath, "wb") as f:
         pickle.dump(le, f)
     # save the annotations.txt for the entire dataset
