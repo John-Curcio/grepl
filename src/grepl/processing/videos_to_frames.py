@@ -61,7 +61,7 @@ def video_to_rgb(video_filename, out_dir, resize_shape):
             cv2.imwrite(os.path.join(out_dir, FILE_TEMPLATE.format(idx)), img)
             
     print(f"Extracted {idx + 1} frames from {video_filename} to {out_dir}")
-
+    
 def process_videofile(video_filename, video_path, rgb_out_path, file_extension: str ='.mp4'):
     filepath = os.path.join(video_path, video_filename)
     video_filename = video_filename.replace(file_extension, '')
