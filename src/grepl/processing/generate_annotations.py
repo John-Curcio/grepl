@@ -38,18 +38,25 @@ def _get_clip_filename(row, duration: int = 30, bw: bool = False) -> str:
 def _fit_label_encoder(df: pd.DataFrame) -> LabelEncoder:
     le = LabelEncoder()
     all_tags = sorted({tag for tags_str in df["tags"] for tag in tags_str.split(",")})
-
-    # all_tags = sorted(set(df["tags"].apply(lambda x: x.split(",")).explode()))
-    
     le.fit(all_tags)
     return le
 
-def _write_annotations_to_file(df: pd.DataFrame, annotation_filepath: str):
+def _encode_tags_dummy(tags:str, le: LabelEncoder) -> np.ndarray:
+    """Encode tags as a dummy vector using the provided label encoder.
+    Not technically one-hot encoded because multiple tags can be present.
+    """
+    encoded_tags = le.transform(tags.split(",")) if tags else []
+    dummy = np.zeros(len(le.classes_), dtype=int)
+    dummy[encoded_tags] = 1
+    return dummy
+
+def _write_annotations_to_file(df: pd.DataFrame, annotation_filepath: str,
+                               encoded_tags_col: str = "encoded_tags_exhaustive"):
     # create the annotations.txt file
     with open(annotation_filepath, "w") as f:
         n_rows = df.query("clip_filename_in_clips_folder").shape[0]
         for _, row in tqdm(df.query("clip_filename_in_clips_folder").iterrows(), total=n_rows):
-            label_annotation = " ".join([str(t) for t in row["encoded_tags_exhaustive"]])
+            label_annotation = " ".join([str(t) for t in row[encoded_tags_col]])
             clip_filename = row["clip_filename"]
             # count number of images in clip_frames folder
             num_images = len(os.listdir(os.path.join(CLIP_FRAMES_FOLDER, clip_filename)))
@@ -80,7 +87,7 @@ def generate_annotations():
     print("Found", df["clip_filename_in_clips_folder"].sum(), "clips in the clip_frames folder.")
     print("Fitting, transforming label encoder on tags...")
     le = _fit_label_encoder(df)
-    df["encoded_tags_exhaustive"] = df["tags"].apply(lambda x: le.transform(x.split(",")))
+    df["encoded_tags_exhaustive"] = df["tags"].apply(lambda x: _encode_tags_dummy(x, le))
 
     print("Encoding tags worth learning...")
     labeled_tags = pd.read_csv(LABELED_TAGS_FILENAME, header=None, names=["tag", "label"])
@@ -88,7 +95,7 @@ def generate_annotations():
     df["tags_filtered"] = df["tags"].apply(lambda x: ",".join(
         [t for t in x.split(",") if t in bjj_tags]
     ))
-    df["encoded_tags_filtered"] = df["tags_filtered"].apply(lambda x: le.transform(x.split(",")) if x else [])
+    df["encoded_tags_filtered"] = df["tags_filtered"].apply(lambda x: _encode_tags_dummy(x, le))
 
     # save the label encoder
     le_filepath = os.path.join(CLIP_FRAMES_FOLDER, LABEL_ENCODER_FILENAME)
@@ -111,9 +118,12 @@ def generate_annotations():
         lambda x: youtube_id_assignment[x]
     )
     for split_name, split_df in df.groupby("split_assignment"):
-        print(f"Writing annotations for {split_name} split...")
-        split_annotation_filepath = os.path.join(CLIP_FRAMES_FOLDER, f"annotations_{split_name}.txt")
-        _write_annotations_to_file(split_df, split_annotation_filepath)
+        for encoded_tags_suffix in ["exhaustive", "filtered"]:
+            split_annotation_filepath = os.path.join(CLIP_FRAMES_FOLDER, 
+                                                     f"annotations_{encoded_tags_suffix}_{split_name}.txt")
+            print(f"Writing {len(split_df)} annotations to file... ({split_name} set, {encoded_tags_suffix} tags)")
+            encoded_tags_col = f"encoded_tags_{encoded_tags_suffix}"
+            _write_annotations_to_file(split_df, split_annotation_filepath, encoded_tags_col)
 
     # save the annotations CSV
     df.to_csv(os.path.join(CLIP_FRAMES_FOLDER, ANNOTATION_CSV_FILENAME), index=False)
