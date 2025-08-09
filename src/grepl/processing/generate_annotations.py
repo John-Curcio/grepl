@@ -51,19 +51,33 @@ def _encode_tags_dummy(tags:str, le: LabelEncoder) -> np.ndarray:
     return dummy
 
 def _write_annotations_to_file(df: pd.DataFrame, annotation_filepath: str,
-                               encoded_tags_col: str = "encoded_tags_exhaustive"):
+                               encoded_tags_col: str = "encoded_tags_exhaustive",
+                               min_num_frames: int = 30):
     # create the annotations.txt file
     with open(annotation_filepath, "w") as f:
         n_rows = df.query("clip_filename_in_clips_folder").shape[0]
+        skipped_clips = 0
         for _, row in tqdm(df.query("clip_filename_in_clips_folder").iterrows(), total=n_rows):
             label_annotation = " ".join([str(t) for t in row[encoded_tags_col]])
             clip_filename = row["clip_filename"]
             # count number of images in clip_frames folder
-            num_images = len(os.listdir(os.path.join(CLIP_FRAMES_FOLDER, clip_filename)))
-            annotation_row = f"{clip_filename} 0 {num_images} {label_annotation}"
+            num_images = len(set(
+                f for f in os.listdir(os.path.join(CLIP_FRAMES_FOLDER, clip_filename))
+                if f.endswith(".jpg") or f.endswith(".jpeg")
+            ))
+            
+            # Skip clips that don't have enough frames
+            if num_images < min_num_frames:
+                skipped_clips += 1
+                continue
+                
+            annotation_row = f"{clip_filename} 0 {num_images-1} {label_annotation}"
             f.write(annotation_row + "\n")
+        
+        if skipped_clips > 0:
+            print(f"Skipped {skipped_clips} clips with fewer than {min_num_frames} frames")
 
-def generate_annotations():
+def generate_annotations(min_num_frames: int = 30):
     """Generate the clip_frames/annotations.txt folder (and the label encoder to make sense of the integer labels)
     
     Each row of annotations.txt will look like this:
@@ -106,7 +120,7 @@ def generate_annotations():
     if not os.path.exists(CLIP_FRAMES_FOLDER):
         os.makedirs(CLIP_FRAMES_FOLDER)
     annotation_filepath = os.path.join(CLIP_FRAMES_FOLDER, ANNOTATION_FILENAME)
-    _write_annotations_to_file(df, annotation_filepath)
+    _write_annotations_to_file(df, annotation_filepath, min_num_frames=min_num_frames)
     # now, split the dataset into train, valid, test sets
     # grouped by youtube_id (no youtube_ids leakage)
     youtube_id_assignment = {
@@ -123,7 +137,7 @@ def generate_annotations():
                                                      f"annotations_{encoded_tags_suffix}_{split_name}.txt")
             print(f"Writing {len(split_df)} annotations to file... ({split_name} set, {encoded_tags_suffix} tags)")
             encoded_tags_col = f"encoded_tags_{encoded_tags_suffix}"
-            _write_annotations_to_file(split_df, split_annotation_filepath, encoded_tags_col)
+            _write_annotations_to_file(split_df, split_annotation_filepath, encoded_tags_col, min_num_frames)
 
     # save the annotations CSV
     df.to_csv(os.path.join(CLIP_FRAMES_FOLDER, ANNOTATION_CSV_FILENAME), index=False)
