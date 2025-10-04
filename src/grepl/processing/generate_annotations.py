@@ -25,6 +25,7 @@ LABELED_TAGS_FILENAME = "/home/rocus/Documents/john/grepl/labeled_tags.txt" # ea
 ANNOTATION_FILENAME = "annotations.txt"
 ANNOTATION_CSV_FILENAME = "annotations.csv"
 LABEL_ENCODER_FILENAME = "label_encoder.pkl"
+FILTERED_LABEL_ENCODER_FILENAME = "filtered_label_encoder.pkl"
 
 P_TRAIN = 0.8
 P_VALID, P_TEST = (1 - P_TRAIN) / 2, (1 - P_TRAIN) / 2
@@ -35,9 +36,9 @@ def _get_clip_filename(row, duration: int = 30, bw: bool = False) -> str:
     vid, start = row["youtube_id"], row["total_seconds"]
     return f"{vid}_{start}_{duration}{'_bw' if bw else ''}"
 
-def _fit_label_encoder(df: pd.DataFrame) -> LabelEncoder:
+def _fit_label_encoder(df: pd.DataFrame, tags_col: str = "tags") -> LabelEncoder:
     le = LabelEncoder()
-    all_tags = sorted({tag for tags_str in df["tags"] for tag in tags_str.split(",")})
+    all_tags = sorted({tag for tags_str in df[tags_col] for tag in tags_str.split(",")})
     le.fit(all_tags)
     return le
 
@@ -109,12 +110,14 @@ def generate_annotations(min_num_frames: int = 30):
     df["tags_filtered"] = df["tags"].apply(lambda x: ",".join(
         [t for t in x.split(",") if t in bjj_tags]
     ))
-    df["encoded_tags_filtered"] = df["tags_filtered"].apply(lambda x: _encode_tags_dummy(x, le))
+    filtered_le = _fit_label_encoder(df, tags_col="tags_filtered")
+    df["encoded_tags_filtered"] = df["tags_filtered"].apply(lambda x: _encode_tags_dummy(x, filtered_le))
 
     # save the label encoder
-    le_filepath = os.path.join(CLIP_FRAMES_FOLDER, LABEL_ENCODER_FILENAME)
-    with open(le_filepath, "wb") as f:
-        pickle.dump(le, f)
+    for le, filename in [(le, LABEL_ENCODER_FILENAME), (filtered_le, FILTERED_LABEL_ENCODER_FILENAME)]:
+        le_filepath = os.path.join(CLIP_FRAMES_FOLDER, filename)
+        with open(le_filepath, "wb") as f:
+            pickle.dump(le, f)
     # save the annotations.txt for the entire dataset
     print("Writing annotations to file... (full dataset)")
     if not os.path.exists(CLIP_FRAMES_FOLDER):

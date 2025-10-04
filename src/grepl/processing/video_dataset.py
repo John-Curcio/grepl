@@ -54,6 +54,10 @@ class VideoRecord(object):
         else:
             return [int(label_id) for label_id in self._data[3:]]
 
+    def load_img_list(self) -> List[Image.Image]:
+        """Helper to load all the images of the video as a list of PIL images."""
+        return [Image.open(os.path.join(self.path, f)).convert('RGB') for f in sorted(os.listdir(self.path))]
+
 class VideoFrameDataset(torch.utils.data.Dataset):
     r"""
     A highly efficient and adaptable dataset class for videos.
