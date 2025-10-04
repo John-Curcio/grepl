@@ -13,19 +13,26 @@ TODO see docs for more: https://github.com/RaivoKoot/Video-Dataset-Loading-Pytor
 """
 
 import os
+import pickle
+
 import numpy as np
 import pandas as pd
-import pickle
-from tqdm import tqdm
 from sklearn.preprocessing import LabelEncoder
-# TODO move this CSV_PATH to a config/constants file
-CSV_PATH = "/home/rocus/Documents/john/grepl/parsed_page_enriched.csv"
-CLIP_FRAMES_FOLDER = "/home/rocus/Documents/john/grepl/clip_frames"
-LABELED_TAGS_FILENAME = "/home/rocus/Documents/john/grepl/labeled_tags.txt" # each tag is "labeled" as "bjj" or "other"
-ANNOTATION_FILENAME = "annotations.txt"
-ANNOTATION_CSV_FILENAME = "annotations.csv"
-LABEL_ENCODER_FILENAME = "label_encoder.pkl"
-FILTERED_LABEL_ENCODER_FILENAME = "filtered_label_encoder.pkl"
+from tqdm import tqdm
+
+from grepl.constants import (
+    ANNOTATION_CSV_FILENAME,
+    ANNOTATION_FILENAME,
+    CLIP_FRAMES_DIR,
+    FILTERED_LABEL_ENCODER_FILENAME,
+    LABEL_ENCODER_FILENAME,
+    LABELED_TAGS_FILE,
+    PARSED_PAGE_CSV,
+)
+
+CSV_PATH = PARSED_PAGE_CSV
+CLIP_FRAMES_FOLDER = CLIP_FRAMES_DIR
+LABELED_TAGS_FILENAME = LABELED_TAGS_FILE  # each tag is "labeled" as "bjj" or "other"
 
 P_TRAIN = 0.8
 P_VALID, P_TEST = (1 - P_TRAIN) / 2, (1 - P_TRAIN) / 2
