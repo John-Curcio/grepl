@@ -1,33 +1,34 @@
 import os
-import cv2
-import av
 import threading
-import subprocess
 from queue import Queue
 
-"""
-Given individual video files (mp4, webm) on disk, creates a folder for
-every video file and saves the video's RGB frames as jpeg files in that
-folder.
+import av
+import cv2
 
-It can be used to turn clips/, which comes as
-many ".mp4" files, into an RGB folder for each ".mp4" file.
-Uses multithreading to extract frames faster.
+from grepl.constants import (
+    CLIPS_DIR,
+    CLIP_FRAMES_DIR,
+    FRAME_FPS,
+    FRAME_HEIGHT,
+    FRAME_TEMPLATE,
+    FRAME_WIDTH,
+    NUM_EXTRACTION_THREADS,
+    VIDEO_EXTENSION,
+)
 
-Modify the two filepaths at the bottom and then run this script.
-"""
-
-
-FILE_TEMPLATE = 'frame_{:012d}.jpg'
-OUT_HEIGHT_WIDTH = (398, 224) # approximately 16:9 aspect ratio
-VIDEO_PATH = '/home/rocus/Documents/john/grepl/clips/'  # Path to the folder containing video files
-RGB_OUT_PATH = '/home/rocus/Documents/john/grepl/clip_frames' # the root output path where RGB frame folders should be created
-FILE_EXTENSION = '.mp4'  # File extension of the videos to process
-
-FPS_OUT = 10
+"""Utilities for converting raw video clips into per-frame JPEG folders."""
 
 
-def video_to_rgb(video_filename: str, out_dir: str, resize_shape: tuple, fps_out: int = FPS_OUT):
+FILE_TEMPLATE = FRAME_TEMPLATE
+RESIZE_SHAPE = (FRAME_WIDTH, FRAME_HEIGHT)  # (width, height)
+VIDEO_PATH = str(CLIPS_DIR)  # Path to the folder containing video files
+RGB_OUT_PATH = str(CLIP_FRAMES_DIR)  # Output path where frame folders are created
+FILE_EXTENSION = VIDEO_EXTENSION
+
+FPS_OUT = FRAME_FPS
+
+
+def video_to_rgb(video_filename: str, out_dir: str, resize_shape: tuple, fps_out: int) -> None:
     """Convert a video file to a series of RGB frames.
     Extracts frames from the video and saves them as JPEG images in the specified output directory.
     Starts with OpenCV for efficiency, and falls back to PyAV if OpenCV fails.
@@ -55,8 +56,10 @@ def video_to_rgb(video_filename: str, out_dir: str, resize_shape: tuple, fps_out
         idx, frames_captured = 0, 0
         while ok:
             if idx >= next_frame_to_save:
-                cv2.imwrite(os.path.join(out_dir, FILE_TEMPLATE.format(frames_captured)),
-                            cv2.resize(frame, resize_shape))
+                cv2.imwrite(
+                    os.path.join(out_dir, FILE_TEMPLATE.format(frames_captured)),
+                    cv2.resize(frame, resize_shape),
+                )
                 frames_captured += 1
                 next_frame_to_save += frame_interval
             ok, frame = cap.read()
@@ -81,22 +84,27 @@ def video_to_rgb(video_filename: str, out_dir: str, resize_shape: tuple, fps_out
         frames_captured = 0
         for idx, frame in enumerate(container.decode(video=0)):
             if idx >= next_frame_to_save:
-                img = cv2.resize(frame.to_ndarray(format='bgr24'), resize_shape)
+                img = cv2.resize(frame.to_ndarray(format="bgr24"), resize_shape)
                 cv2.imwrite(os.path.join(out_dir, FILE_TEMPLATE.format(frames_captured)), img)
                 frames_captured += 1
                 next_frame_to_save += frame_interval
     return
 
-def process_videofile(video_filename, video_path, rgb_out_path, file_extension: str ='.mp4'):
+def process_videofile(
+    video_filename: str,
+    video_path: str,
+    rgb_out_path: str,
+    file_extension: str = FILE_EXTENSION,
+) -> None:
     filepath = os.path.join(video_path, video_filename)
     video_filename = video_filename.replace(file_extension, '')
 
     out_dir = os.path.join(rgb_out_path, video_filename)
     if not os.path.exists(out_dir):
         os.mkdir(out_dir)
-    video_to_rgb(filepath, out_dir, resize_shape=OUT_HEIGHT_WIDTH)
+    video_to_rgb(filepath, out_dir, resize_shape=RESIZE_SHAPE, fps_out=FPS_OUT)
 
-def thread_job(queue, video_path, rgb_out_path, file_extension='.webm'):
+def thread_job(queue: Queue, video_path: str, rgb_out_path: str, file_extension: str = FILE_EXTENSION) -> None:
     while not queue.empty():
         video_filename = queue.get()
         process_videofile(video_filename, video_path, rgb_out_path, file_extension=file_extension)
@@ -109,8 +117,7 @@ if __name__ == '__main__':
     queue = Queue()
     [queue.put(video_filename) for video_filename in video_filenames if video_filename.endswith(FILE_EXTENSION)]
 
-    NUM_THREADS = 15
-    for i in range(NUM_THREADS):
+    for _ in range(NUM_EXTRACTION_THREADS):
         worker = threading.Thread(target=thread_job, args=(queue, VIDEO_PATH, RGB_OUT_PATH, FILE_EXTENSION))
         worker.start()
 
