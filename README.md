@@ -5,16 +5,16 @@ Ridiculous
 # install
 
 ```
-poetry install
+uv sync --group dev
 make openmmlab
 ```
 
 # sanity check successful installation of mmpose, mmcv stuff
 
-Need `mmpose` for object detection and pose estimation. But setup seems incompatible with poetry.
+Need `mmpose` for object detection and pose estimation. The quick check below verifies torch and the OpenMMLab stack inside the uv-managed virtualenv.
 
 ```
-poetry run python - <<'PY'
+uv run python - <<'PY'
 import sys, torch
 print("python:", sys.executable)
 print("torch:", torch.__version__, "cuda:", torch.version.cuda)

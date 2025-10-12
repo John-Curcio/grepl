@@ -2,7 +2,7 @@
 
 Just
 ```
-poetry run python src/grepl/scrape/scrape_outlier.py
+uv run python src/grepl/scrape/scrape_outlier.py
 ```
 
 And log into the window. Navigate the main outlierdb page (click x then navigate home)
@@ -30,7 +30,7 @@ This should open a new chrome window.
 Then run the scraper:
 
 ```
-poetry run python src/grepl/scrape/scrape_outlier.py
+uv run python src/grepl/scrape/scrape_outlier.py
 ```
 
 You'll be taken to the outlierdb.com login page. You probably don't even have to actually enter your login info - there should be a red "X" that you can click on, and you'll be taken to the outlierdb.com front page. Press enter to continue.
@@ -54,19 +54,19 @@ Should print 20 (for as many pages as you scraped for).
 To parse the pages, run:
 
 ```
-poetry run python src/grepl/scrape/parse_outlier.py
+uv run python src/grepl/scrape/parse_outlier.py
 ```
 
 And then to parse those into video URLs, run:
 
 ```
-poetry run python src/grepl/scrape/parse_video_url.py
+uv run python src/grepl/scrape/parse_video_url.py
 ```
 
 And then to download the video clips, run (for example)
 
 ```
-poetry run python src/grepl/scrape/video_clip_downloader.py https://www.youtube.com/watch\?v\=WjjnS5MxJws\&t\=56s
+uv run python src/grepl/scrape/video_clip_downloader.py https://www.youtube.com/watch\?v\=WjjnS5MxJws\&t\=56s
 ```
 
 This will download a 60s clip starting at 56 seconds into the video.

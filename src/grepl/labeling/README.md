@@ -11,15 +11,15 @@ operations.
   random selections, and updating task status (`pending`, `in_progress`,
   `completed`, `skipped`).
 - `cli.py`: command-line entry point (invoked via
-  `poetry run python -m grepl.labeling.cli`) that offers commands such as
+  `uv run python -m grepl.labeling.cli`) that offers commands such as
   `init-db`, `enqueue-random`, `next`, `update`, `reset`, `stats`, and `list`.
 
 ## Quick Start
 ```bash
-poetry run python -m grepl.labeling.cli init-db
-poetry run python -m grepl.labeling.cli enqueue-random 200 --seed 42
-poetry run python -m grepl.labeling.cli stats
-poetry run python -m grepl.labeling.cli next
+uv run python -m grepl.labeling.cli init-db
+uv run python -m grepl.labeling.cli enqueue-random 200 --seed 42
+uv run python -m grepl.labeling.cli stats
+uv run python -m grepl.labeling.cli next
 ```
 
 ## Extending

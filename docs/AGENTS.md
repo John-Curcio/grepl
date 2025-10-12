@@ -16,8 +16,8 @@
   - Output directories are created lazily (`clip_frames/<video_basename>/`), and frames are resized to the configured width/height before encoding as JPEG.
 - How to run (from repo root):
   ```bash
-  poetry install  # first-time setup
-  poetry run python src/grepl/processing/videos_to_frames.py
+  uv sync --group dev  # first-time setup
+  uv run python src/grepl/processing/videos_to_frames.py
   ```
   Set env vars in the same shell invocation to change source/destination paths or extraction parameters.
 - Monitoring progress:
@@ -39,6 +39,33 @@
 - `src/grepl/processing/video_dataset.py`
   - Generic dataset loader copied from an external repo. When instantiating `VideoFrameDataset`, pass `imagefile_template='frame_{:012d}.jpg'` and `root_path=RGB_OUT_PATH` to align with this repository's frames.
 - Notebook workflows (`src/grepl/2025_*`) load frames directly from `clip_frames/` for visualization and model experiments.
+
+## Sampling & Task Queue
+- SQLite location: `grepl.constants.LABELING_DB_PATH` (defaults to `<repo>/data/labeling.sqlite3`).
+- Schema + helpers: `src/grepl/labeling/db.py` and `src/grepl/labeling/queue.py` manage frame tasks with statuses (`pending`, `in_progress`, `completed`, `skipped`).
+- CLI usage (run from repo root):
+  ```bash
+  uv run python -m grepl.labeling.cli init-db
+  uv run python -m grepl.labeling.cli enqueue-random 200 --seed 7
+  uv run python -m grepl.labeling.cli next
+  uv run python -m grepl.labeling.cli update 1 completed
+  uv run python -m grepl.labeling.cli stats
+  ```
+- Frame selection defaults to uniform random sampling across `clip_frames/`. Extend `FrameTaskQueue.enqueue_frames` for new strategies (uncertainty, curriculum) or adjust priority scores in the SQLite table.
+
+## ViTPose Inference
+- Module: `src/grepl/inference/vitpose_service.py` loads Hugging Face `VitPoseForKeypointDetection` (defaults defined in `grepl.constants`).
+- Use the singleton helper for repeated calls:
+  ```python
+  from grepl.inference import get_vitpose_service
+
+  service = get_vitpose_service()
+  prediction = service.predict("clip_frames/some_clip/frame_000000000010.jpg")
+  for person in prediction.people:
+      print(person.score, person.bbox)
+  ```
+- Structured outputs include per-keypoint confidence/occlusion flags and raw keypoint tensors for downstream storage.
+- Alternative: `src/grepl/inference/mmpose_vitpose_service.py` performs the same formatting using MMPose runtimes. Defaults expect the config/checkpoint under `models/vitpose/`; override via `get_mmpose_vitpose_service(config_path=..., checkpoint_path=...)` if needed.
 
 ## Maintenance & Troubleshooting
 - Disk usage grows quickly (~10 FPS * duration * JPEG size). Periodically archive or prune unused clip folders.
