@@ -95,12 +95,12 @@ class MMPoseViTPoseService:
         img_array = np.array(image)[:, :, ::-1]
 
         bbox_requests = [_BBoxRequest(tuple(map(float, box))) for box in boxes]
-        person_results = [dict(bbox=np.array(bbox.bbox, dtype=np.float32)) for bbox in bbox_requests]
+        bbox_array = np.array([bbox.bbox for bbox in bbox_requests], dtype=np.float32)
 
         data_samples = inference_topdown(
             self.model,
             img_array,
-            person_results,
+            bbox_array,
             bbox_format="xyxy",
         )
 
@@ -153,7 +153,11 @@ class MMPoseViTPoseService:
             if len(pred_instances.keypoints) == 0:
                 continue
 
-            keypoints_xy = pred_instances.keypoints.detach().cpu().numpy()
+            keypoints_xy = pred_instances.keypoints
+            if hasattr(keypoints_xy, "detach"):
+                keypoints_xy = keypoints_xy.detach().cpu().numpy()
+            else:
+                keypoints_xy = np.asarray(keypoints_xy)
             if keypoints_xy.ndim == 3:
                 keypoints_xy = keypoints_xy[0]
 
@@ -163,7 +167,11 @@ class MMPoseViTPoseService:
                 )
 
             if hasattr(pred_instances, "keypoint_scores") and pred_instances.keypoint_scores is not None:
-                kp_scores = pred_instances.keypoint_scores.detach().cpu().numpy()
+                kp_scores = pred_instances.keypoint_scores
+                if hasattr(kp_scores, "detach"):
+                    kp_scores = kp_scores.detach().cpu().numpy()
+                else:
+                    kp_scores = np.asarray(kp_scores)
                 if kp_scores.ndim == 2:
                     kp_scores = kp_scores[0]
             else:
@@ -187,12 +195,21 @@ class MMPoseViTPoseService:
                 )
 
             if hasattr(pred_instances, "bbox_scores") and pred_instances.bbox_scores is not None:
-                person_score = float(pred_instances.bbox_scores.detach().cpu().numpy()[0])
+                bbox_scores = pred_instances.bbox_scores
+                if hasattr(bbox_scores, "detach"):
+                    bbox_scores = bbox_scores.detach().cpu().numpy()
+                else:
+                    bbox_scores = np.asarray(bbox_scores)
+                person_score = float(bbox_scores.flat[0])
             else:
                 person_score = float(np.mean(kp_scores))
 
             if hasattr(pred_instances, "bboxes") and pred_instances.bboxes is not None:
-                pred_bbox = pred_instances.bboxes.detach().cpu().numpy()
+                pred_bbox = pred_instances.bboxes
+                if hasattr(pred_bbox, "detach"):
+                    pred_bbox = pred_bbox.detach().cpu().numpy()
+                else:
+                    pred_bbox = np.asarray(pred_bbox)
                 if pred_bbox.ndim == 2:
                     pred_bbox = pred_bbox[0]
                 bbox_tuple = tuple(float(v) for v in pred_bbox[:4])
