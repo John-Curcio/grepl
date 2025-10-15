@@ -26,12 +26,12 @@
 *.sql
 *.sqlite
 *.mp4
+.pt
 *.jpg
 *.jpeg
-<<<<<<< HEAD
-=======
 *.mp4.part
->>>>>>> video_proc_nice
+__pycache__/
+src/grepl/wandb/
 
 # OS generated files #
 ######################
