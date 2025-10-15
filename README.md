@@ -6,7 +6,6 @@ Ridiculous
 
 ```
 uv sync --group dev
-make openmmlab
 ```
 
 # sanity check successful installation of mmpose, mmcv stuff

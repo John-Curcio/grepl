@@ -35,5 +35,5 @@ FILTERED_LABEL_ENCODER_FILENAME = "filtered_label_encoder.pkl"
 # ViTPose defaults
 VITPOSE_MODEL_ID = "TencentARC/vitpose-base-multi-coco"
 VITPOSE_CACHE_DIR = REPO_ROOT / "models" / "vitpose"
-MMPPOSE_VITPOSE_CONFIG = REPO_ROOT / "models" / "vitpose" / "vitpose-b-mmpose.py"
-MMPPOSE_VITPOSE_CHECKPOINT = REPO_ROOT / "models" / "vitpose" / "vitpose-b-mmpose.pth"
+MMPPOSE_VITPOSE_CONFIG = REPO_ROOT / "models" / "vitpose" / "vitpose_b_mmpose.py"
+MMPPOSE_VITPOSE_CHECKPOINT = REPO_ROOT / "models" / "vitpose" / "vitpose_b_mmpose.pth"
